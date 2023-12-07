@@ -3,15 +3,21 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define ROWS 3
-#define COLUMNS 4
+#define ROWS 10
+#define COLUMNS 20
 
-#define STEPS 60
+#define STEPS 120
 
-#define MIN_TIME 10
-#define MAX_TIME 20
+#define MIN_TIME 20
+#define MAX_TIME 40
+
+#define ENTRY_ROW 0
+#define ENTRY_COL 10
 
 int counter = 1;
+
+int entryRow = ENTRY_ROW;
+int entryCol = ENTRY_COL;
 
 bool spots[ROWS][COLUMNS];
 
@@ -42,36 +48,49 @@ int randomBetween(int a, int b) {
 }
 
 bool arrive() {
+    int minDistance = ROWS * COLUMNS;
+    int targetRow = -1, targetCol = -1;
+
     for (int i = 0; i < ROWS; i++) {
         for (int j = 0; j < COLUMNS; j++) {
             if (!spots[i][j]) {
-                spots[i][j] = true; // free space found
-
-                // Vytvoření nového vozidla
-                t_car* newCar = malloc(sizeof(t_car));
-                newCar->row = i;
-                newCar->col = j;
-                newCar->arrivalTime = counter;
-                newCar->stayDuration = randomBetween(MIN_TIME, MAX_TIME);
-                newCar->next = NULL;
-
-                if (head == NULL) {
-                    head = newCar;
+                int distance = abs(i - entryRow) + abs(j - entryCol);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    targetRow = i;
+                    targetCol = j;
                 }
-                else {
-                    t_car* current = head;
-                    while (current->next != NULL) {
-                        current = current->next;
-                    }
-                    current->next = newCar;
-                }
-
-                return true; // car successfully added
             }
         }
     }
-    return false; // parking lot full
+
+    if (targetRow != -1 && targetCol != -1) {
+        spots[targetRow][targetCol] = true;
+
+        // NEW CAR CREATION
+        t_car* newCar = malloc(sizeof(t_car));
+        newCar->row = targetRow;
+        newCar->col = targetCol;
+        newCar->arrivalTime = counter;
+        newCar->stayDuration = randomBetween(MIN_TIME, MAX_TIME);
+        newCar->next = NULL;
+
+        if (head == NULL) {
+            head = newCar;
+        } else {
+            t_car* current = head;
+            while (current->next != NULL) {
+                current = current->next;
+            }
+            current->next = newCar;
+        }
+
+        return true;
+    }
+
+    return false;
 }
+
 
 
 void updateCars() {
@@ -115,9 +134,6 @@ int main() {
         if (rand() % 2) {
             arrive();
         }
-//        else {
-//            depart();
-//        }
         updateCars();
 
         printStatus();
