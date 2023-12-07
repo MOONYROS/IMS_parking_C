@@ -91,8 +91,6 @@ bool arrive() {
     return false;
 }
 
-
-
 void updateCars() {
     t_car** current = &head;
     while (*current) {
@@ -107,12 +105,6 @@ void updateCars() {
             current = &(*current)->next;
         }
     }
-}
-
-void depart() {
-    int row = rand() % ROWS;
-    int col = rand() % COLUMNS;
-    spots[row][col] = false; // random car departs
 }
 
 void printStatus() {
@@ -131,12 +123,14 @@ int main() {
     initializeParkingLot();
 
     for (int time = 0; time < STEPS; time++) {
-        if (rand() % 2) {
+        for (int i = 0; i < randomBetween(2, 4); i++) {
             arrive();
         }
         updateCars();
 
-        printStatus();
+        if (time % 10 == 0) {
+            printStatus();
+        }
     }
 
     return 0;
