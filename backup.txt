@@ -12,7 +12,7 @@
 #define MAX_TIME 40
 
 #define ENTRY_ROW 0
-#define ENTRY_COL 20
+#define ENTRY_COL 10
 
 #define LOW_FREQ 2
 #define HIGH_FREQ 4
