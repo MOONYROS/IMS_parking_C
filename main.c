@@ -212,6 +212,7 @@ int main() {
         counter++;
     }
 
+    printf("Number of parking spots: %d\n", ROWS * COLUMNS);
     printf("Created cars: %d\n", createdCars);
     printf("Expired cars: %d\n", expiredCars);
     printf("Parked cars: %d\n", parkedCars);
