@@ -11,15 +11,21 @@
 #define MIN_TIME 20
 #define MAX_TIME 40
 
+#define MIN_ATTEMPTS 1
+#define MAX_ATTEMPTS 3
+
 #define ENTRY_ROW 0
 #define ENTRY_COL 10
 
 #define LOW_FREQ 2
 #define HIGH_FREQ 4
 
-#define ATTEMPTS 4
-
 int counter = 1;
+
+// STATISTICS
+int createdCars = 0;
+int parkedCars = 0;
+int expiredCars = 0;
 
 bool spots[ROWS][COLUMNS];
 
@@ -27,6 +33,9 @@ typedef struct car {
     int row, col;
     int arrivalTime;
     int stayDuration;
+    int parkAttempts;
+    int maxAttempts;
+    bool parked;
     struct car* next;
 } t_car;
 
@@ -54,6 +63,9 @@ t_car* createCar() {
     newCar->arrivalTime = counter;
     newCar->stayDuration = randomBetween(MIN_TIME, MAX_TIME);
     newCar->next = NULL;
+    newCar->parkAttempts = 0;
+    newCar->maxAttempts = randomBetween(MIN_ATTEMPTS, MAX_ATTEMPTS);
+    newCar->parked = false;
 
     if (head == NULL) {
         head = newCar;
@@ -101,37 +113,58 @@ void clearCarList() {
     head = NULL;
 }
 
-bool arrive() {
-    for (int attempt = 0; attempt < ATTEMPTS; attempt++) { // 4 chances to find a parking spot
-        for (int i = 0; i < ROWS; i++) { // search by rows
-            int closestDistanceInRow = COLUMNS + 1; // setting the highest row distance
-            int targetCol = -1;
+bool parkCar(t_car* car) {
+    for (int i = 0; i < ROWS; i++) { // first we start with first row
+        int closestDistanceInRow = COLUMNS + 1; // maximum distance
+        int targetCol = -1;
 
-            for (int j = 0; j < COLUMNS; j++) {
-                if (!spots[i][j]) { // for each free column, we check how close it is
-                    int distance = abs(j - ENTRY_COL);
-                    if (distance < closestDistanceInRow) {
-                        closestDistanceInRow = distance;
-                        targetCol = j;
-                    }
+        for (int j = 0; j < COLUMNS; j++) { // we search for a spot in a row
+            if (spots[i][j] == false) { // if a parking spot is free, we calculate its distance from entrance
+                int distance = abs(j - ENTRY_COL);
+                if (distance < closestDistanceInRow) {
+                    closestDistanceInRow = distance;
+                    targetCol = j;
                 }
             }
+        }
 
-            // after finding the closest parking spot, we occupy it
-            if (targetCol != -1) {
-                spots[i][targetCol] = true;
+        if (targetCol != -1) { // if we found a free spot, we occupy it
+            spots[i][targetCol] = true;
+            car->row = i;
+            car->col = targetCol;
+            car->parked = true;
+            parkedCars++;
+            return true;
+        }
+    }
+    return false;
+}
 
-                t_car* newCar = createCar();
-                newCar->row = i;
-                newCar->col = targetCol;
+void attemptToPark() {
+    t_car** current = &head;
+    while (*current) {
+        t_car* car = *current;
 
-                return true;
+        if (car->parked == false) { // we try to park every car, that has not yet parked
+            if (car->parkAttempts < car->maxAttempts) { // if the parking limit has not expired, we try to park
+                if (parkCar(car) == true) { // if a car has managed to find a parking spot, we move to next car in list.
+                    current = &(*current)->next;
+                    continue;
+                }
+                else {
+                   car->parkAttempts++; // if not, we increment attempts to park
+                }
+            }
+            else { // if the parking limit expired, we remove the car from the list
+                removeCar(car);
+                expiredCars++;
+                continue;
             }
         }
-        counter++;
+        else { // if the car is parked, we move on to the next car in the list
+            current = &(*current)->next;
+        }
     }
-
-    return false;
 }
 
 
@@ -158,23 +191,30 @@ void printStatus() {
         }
         printf("\n");
     }
-    counter++;
 }
 
 int main() {
     srand(time(NULL));
     initializeParkingLot();
 
-    for (int time = 0; time < STEPS; time++) {
+    while (counter < STEPS) {
         for (int i = 0; i < randomBetween(LOW_FREQ, HIGH_FREQ); i++) {
-            arrive();
+            createCar();
+            createdCars++;
         }
+        attemptToPark();
         updateCars();
 
-        if (time % 10 == 0) {
+        if (counter % 10 == 0) {
             printStatus();
         }
+
+        counter++;
     }
+
+    printf("Created cars: %d\n", createdCars);
+    printf("Expired cars: %d\n", expiredCars);
+    printf("Parked cars: %d\n", parkedCars);
 
     clearCarList();
     return 0;
