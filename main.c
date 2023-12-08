@@ -91,6 +91,16 @@ void removeCar(t_car* carToRemove) {
     }
 }
 
+void clearCarList() {
+    t_car* current = head;
+    while (current != NULL) {
+        t_car* nextCar = current->next;
+        free(current);
+        current = nextCar;
+    }
+    head = NULL;
+}
+
 bool arrive() {
     for (int attempt = 0; attempt < ATTEMPTS; attempt++) { // 4 chances to find a parking spot
         for (int i = 0; i < ROWS; i++) { // search by rows
@@ -166,5 +176,6 @@ int main() {
         }
     }
 
+    clearCarList();
     return 0;
 }
