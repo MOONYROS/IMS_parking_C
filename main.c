@@ -12,15 +12,14 @@
 #define MAX_TIME 40
 
 #define ENTRY_ROW 0
-#define ENTRY_COL 20
+#define ENTRY_COL 10
 
 #define LOW_FREQ 2
 #define HIGH_FREQ 4
 
-int counter = 1;
+#define ATTEMPTS 4
 
-int entryRow = ENTRY_ROW;
-int entryCol = ENTRY_COL;
+int counter = 1;
 
 bool spots[ROWS][COLUMNS];
 
@@ -50,15 +49,57 @@ int randomBetween(int a, int b) {
     return rand() % (b - a + 1) + a;
 }
 
+t_car* createCar() {
+    t_car* newCar = malloc(sizeof(t_car));
+    newCar->arrivalTime = counter;
+    newCar->stayDuration = randomBetween(MIN_TIME, MAX_TIME);
+    newCar->next = NULL;
+
+    if (head == NULL) {
+        head = newCar;
+    }
+    else {
+        t_car* current = head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = newCar;
+    }
+
+    return newCar;
+}
+
+void removeCar(t_car* carToRemove) {
+    if (head == NULL || carToRemove == NULL) {
+        return;
+    }
+
+    if (head == carToRemove) {
+        head = head->next;
+        free(carToRemove);
+        return;
+    }
+
+    t_car* current = head;
+    while (current != NULL && current->next != carToRemove) {
+        current = current->next;
+    }
+
+    if (current != NULL && current->next == carToRemove) {
+        current->next = carToRemove->next;
+        free(carToRemove);
+    }
+}
+
 bool arrive() {
-    for (int attempt = 0; attempt < 4; attempt++) { // Pravidlo 3 a 4: Auto má 4 pokusy (minuty) na hledání místa
-        for (int i = 0; i < ROWS; i++) { // Průchod po řadách, Pravidlo 2: Postupné procházení řad
-            int closestDistanceInRow = COLUMNS + 1; // Nastavit na maximální možnou vzdálenost v řadě
+    for (int attempt = 0; attempt < ATTEMPTS; attempt++) { // 4 chances to find a parking spot
+        for (int i = 0; i < ROWS; i++) { // search by rows
+            int closestDistanceInRow = COLUMNS + 1; // setting the highest row distance
             int targetCol = -1;
 
             for (int j = 0; j < COLUMNS; j++) {
-                if (!spots[i][j]) {
-                    int distance = abs(j - entryCol);
+                if (!spots[i][j]) { // for each free column, we check how close it is
+                    int distance = abs(j - ENTRY_COL);
                     if (distance < closestDistanceInRow) {
                         closestDistanceInRow = distance;
                         targetCol = j;
@@ -66,35 +107,21 @@ bool arrive() {
                 }
             }
 
+            // after finding the closest parking spot, we occupy it
             if (targetCol != -1) {
-                spots[i][targetCol] = true; // Auto zaparkovalo
+                spots[i][targetCol] = true;
 
-                // Vytvoření nového vozidla
-                t_car* newCar = malloc(sizeof(t_car));
+                t_car* newCar = createCar();
                 newCar->row = i;
                 newCar->col = targetCol;
-                newCar->arrivalTime = counter;
-                newCar->stayDuration = randomBetween(MIN_TIME, MAX_TIME);
-                newCar->next = NULL;
 
-                // Přidání auta na konec seznamu
-                if (head == NULL) {
-                    head = newCar;
-                } else {
-                    t_car* current = head;
-                    while (current->next != NULL) {
-                        current = current->next;
-                    }
-                    current->next = newCar;
-                }
-
-                return true; // Auto úspěšně zaparkovalo
+                return true;
             }
         }
-        counter++; // Přidání času na další pokus
+        counter++;
     }
 
-    return false; // Auto opouští systém po 4 pokusech
+    return false;
 }
 
 
@@ -105,8 +132,7 @@ void updateCars() {
 
         if (counter >= car->stayDuration + car->arrivalTime) {
             spots[car->row][car->col] = false;
-            *current = car->next;
-            free(car);
+            removeCar(car);
         }
         else {
             current = &(*current)->next;

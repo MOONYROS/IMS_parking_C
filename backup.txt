@@ -3,19 +3,19 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define ROWS 10
-#define COLUMNS 20
+#define ROWS 5
+#define COLUMNS 5
 
-#define STEPS 180
+#define STEPS 100
 
-#define MIN_TIME 20
-#define MAX_TIME 40
+#define MIN_TIME 1
+#define MAX_TIME 1
 
 #define ENTRY_ROW 0
-#define ENTRY_COL 10
+#define ENTRY_COL 2
 
-#define LOW_FREQ 2
-#define HIGH_FREQ 4
+#define LOW_FREQ 1
+#define HIGH_FREQ 1
 
 int counter = 1;
 
@@ -28,6 +28,8 @@ typedef struct car {
     int row, col;
     int arrivalTime;
     int stayDuration;
+    int searchingTime; // Přidáno pro sledování, jak dlouho auto hledá místo
+    bool parked;
     struct car* next;
 } t_car;
 
@@ -50,65 +52,96 @@ int randomBetween(int a, int b) {
     return rand() % (b - a + 1) + a;
 }
 
-bool arrive() {
-    for (int attempt = 0; attempt < 4; attempt++) { // Pravidlo 3 a 4: Auto má 4 pokusy (minuty) na hledání místa
-        for (int i = 0; i < ROWS; i++) { // Průchod po řadách, Pravidlo 2: Postupné procházení řad
-            int closestDistanceInRow = COLUMNS + 1; // Nastavit na maximální možnou vzdálenost v řadě
-            int targetCol = -1;
+void arrive() {
+    // we create and initialize a car
+    t_car* newCar = malloc(sizeof(t_car));
+    newCar->arrivalTime = counter;
+    newCar->stayDuration = randomBetween(MIN_TIME, MAX_TIME);
+    newCar->searchingTime = 0;
+    newCar->parked = false;
+    newCar->next = NULL;
 
-            for (int j = 0; j < COLUMNS; j++) {
-                if (!spots[i][j]) {
-                    int distance = abs(j - entryCol);
-                    if (distance < closestDistanceInRow) {
-                        closestDistanceInRow = distance;
-                        targetCol = j;
-                    }
-                }
-            }
-
-            if (targetCol != -1) {
-                spots[i][targetCol] = true; // Auto zaparkovalo
-
-                // Vytvoření nového vozidla
-                t_car* newCar = malloc(sizeof(t_car));
-                newCar->row = i;
-                newCar->col = targetCol;
-                newCar->arrivalTime = counter;
-                newCar->stayDuration = randomBetween(MIN_TIME, MAX_TIME);
-                newCar->next = NULL;
-
-                // Přidání auta na konec seznamu
-                if (head == NULL) {
-                    head = newCar;
-                } else {
-                    t_car* current = head;
-                    while (current->next != NULL) {
-                        current = current->next;
-                    }
-                    current->next = newCar;
-                }
-
-                return true; // Auto úspěšně zaparkovalo
-            }
-        }
-        counter++; // Přidání času na další pokus
+    // if the list is empty, we put the car on the beggining of it
+    if (head == NULL) {
+        head = newCar;
     }
-
-    return false; // Auto opouští systém po 4 pokusech
+    // otherwise we put it to the end of the list
+    else {
+        t_car* current = head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = newCar;
+    }
 }
 
-
-void updateCars() {
+void searchForParking() {
     t_car** current = &head;
     while (*current) {
         t_car* car = *current;
 
-        if (counter >= car->stayDuration + car->arrivalTime) {
-            spots[car->row][car->col] = false;
+        // if the car is already parked, we dont care about it
+        if (car->parked == true) {
             *current = car->next;
-            free(car);
         }
-        else {
+        else { // if not, we check the car parameters
+            // we check if the car has been searching for spot for 4 STEPS
+            if (car->searchingTime >= 4) {
+                *current = car->next; // if so, we remove it from the list... the car is leaving
+                free(car);
+                continue;
+            }
+
+            int minDistance = ROWS * COLUMNS; // parking lot diagonal (setting up as MAXIMUM)
+            int targetRow = -1, targetCol = -1; // variable initialization
+
+            // we look for the closest parking spot
+            for (int i = 0; i < ROWS; i++) { // first we search by each row
+                for (int j = 0; j < COLUMNS; j++) { // then by column
+                    if (!spots[i][j]) { // if the spot is free, we calculate if its the closest point
+                        int distance = abs(i - entryRow) + abs(j - entryCol);
+                        if (distance < minDistance) { // if it is, we save it and look for even closer spot
+                            minDistance = distance;
+                            targetRow = i;
+                            targetCol = j;
+                        }
+                    }
+                }
+            }
+
+            // if the car has found a good spot, then it parks there
+            if (targetRow != -1 && targetCol != -1) {
+                spots[targetRow][targetCol] = true;
+                car->row = targetRow;
+                car->col = targetCol;
+                car->parked = true;
+
+                *current = car->next;
+            }
+            else { // if not, we try it in another go
+                car->searchingTime++;
+                current = &(*current)->next;
+            }
+        }
+    }
+}
+
+void updateCars() { // we loop through the list of cars
+    t_car** current = &head;
+    while (*current) {
+        t_car* car = *current;
+
+        // if the car is not yet parked, we dont care about it
+        if (car->parked == false) {
+            current = &(*current)->next;
+            continue;
+        }
+        if (counter >= car->stayDuration + car->arrivalTime) {
+            spots[car->row][car->col] = false; // we free the parking spot
+            *current = car->next; // move to the next car
+            free(car); // free the first car
+        }
+        else { // if the duration is not expired, we check other car on the list
             current = &(*current)->next;
         }
     }
@@ -130,14 +163,16 @@ int main() {
     initializeParkingLot();
 
     for (int time = 0; time < STEPS; time++) {
-        for (int i = 0; i < randomBetween(LOW_FREQ, HIGH_FREQ); i++) {
+        int number = randomBetween(LOW_FREQ, HIGH_FREQ);
+        for (int i = 0; i < number; i++) {
             arrive();
         }
+        searchForParking();
         updateCars();
 
-        if (time % 10 == 0) {
+//        if (time % 10 == 0) {
             printStatus();
-        }
+//        }
     }
 
     return 0;
