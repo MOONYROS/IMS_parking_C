@@ -1,3 +1,11 @@
+/**
+ * @file main.c
+ * @brief Core file of this project that does all the work.
+ * @author Ondrej Lukasek (xlukas15)
+ * @date 2023-12-09
+ * @copyright GNU GPL V3 LICENSE
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -58,10 +66,20 @@ typedef struct car {
 
 t_car* head = NULL;
 
+/**
+ * @Funtion that prints out hint about usage of this program.
+ */
 void printHelp() {
     printf("THIS IS HELP FOR IMS PROJECT\n");
 }
 
+/**
+ * @brief Function that parses the command line arguments.
+ *
+ * @param argc Argument count.
+ * @param argv Array of arguments.
+ * @return Numeral code based on ending state of the function.
+ */
 int parseArguments(int argc, char* argv[]) {
     int opt;
     char *endptr;
@@ -153,6 +171,9 @@ int parseArguments(int argc, char* argv[]) {
     }
 }
 
+/**
+ * Function to allocate memory for parking lot and initialization of parking lot.
+ */
 void initializeParkingLot() {
     spots = malloc(global_rows * sizeof(bool *));
     for (int i = 0; i < global_rows; i++) {
@@ -166,6 +187,9 @@ void initializeParkingLot() {
     }
 }
 
+/**
+ * Function to free parking lot in memory.
+ */
 void clearParkingLot() {
     for (int i = 0; i < global_rows; i++) {
         free(spots[i]);
@@ -173,6 +197,13 @@ void clearParkingLot() {
     free(spots);
 }
 
+/**
+ * @brief Function that will randomly select a number between 'a' and 'b'.
+ *
+ * @param a First number.
+ * @param b Second number.
+ * @return Random integer from interval (a, b).
+ */
 int randomBetween(int a, int b) {
     if (b < a) {
         int temp = a;
@@ -182,6 +213,11 @@ int randomBetween(int a, int b) {
     return rand() % (b - a + 1) + a;
 }
 
+/**
+ * @brief Function that will randomly decide (based on probability) type of car (behavior).
+ *
+ * @return Number of a car type.
+ */
 int getDriverType() {
     int probability = randomBetween(1, 10);
     if (probability > 0 && probability < 3) {
@@ -195,6 +231,11 @@ int getDriverType() {
     }
 }
 
+/**
+ * @brief Function that appends car to the end of the car list.
+ *
+ * @return Pointer to car structure.
+ */
 t_car* createCar() {
     t_car* newCar = malloc(sizeof(t_car));
     newCar->arrivalTime = counter;
@@ -219,6 +260,11 @@ t_car* createCar() {
     return newCar;
 }
 
+/**
+ * @brief Function that removes car from car list.
+ *
+ * @param carToRemove Pointer to car structure.
+ */
 void removeCar(t_car* carToRemove) {
     if (head == NULL || carToRemove == NULL) {
         return;
@@ -241,6 +287,9 @@ void removeCar(t_car* carToRemove) {
     }
 }
 
+/**
+ * @brief Function that clears the list of cars.
+ */
 void clearCarList() {
     t_car* current = head;
     while (current != NULL) {
@@ -251,6 +300,13 @@ void clearCarList() {
     head = NULL;
 }
 
+/**
+ * @brief Function that will assign a parking spot of a car.
+ *
+ * @param car Pointer to car structure.
+ * @param row Parking row to occupy.
+ * @param col Parking column to occupy.
+ */
 void assignSpot(t_car* car, int row, int col) {
     spots[row][col] = true;
     car->row = row;
@@ -259,6 +315,12 @@ void assignSpot(t_car* car, int row, int col) {
     parkedCars++;
 }
 
+/**
+ * @brief Function that will park the car based on its parameters.
+ *
+ * @param car Pointer to a car structure.
+ * @return True if parking was successful, false if unsuccessful.
+ */
 bool parkCar(t_car* car) {
     for (int i = 0; i < global_rows; i++) { // first we start with first row
         int minDistance = global_cols + 1; // maximum distance
@@ -309,6 +371,10 @@ bool parkCar(t_car* car) {
     return false;
 }
 
+/**
+ * @brief Function that will try to park a car and if the parking does not succeed,
+ * it will increment parking attempts of the car.
+ */
 void attemptToPark() {
     t_car** current = &head;
     while (*current) {
@@ -336,7 +402,9 @@ void attemptToPark() {
     }
 }
 
-
+/**
+ * @brief Function that updates the car list by removing cars that have expired parking duration.
+ */
 void updateCars() {
     t_car** current = &head;
     while (*current) {
@@ -352,6 +420,9 @@ void updateCars() {
     }
 }
 
+/**
+ * @brief Function that prints out current status of the program.
+ */
 void printStatus() {
     printf("\n-----STEP %d-----\n", counter);
     for (int i = 0; i < global_rows; i++) {
@@ -362,6 +433,9 @@ void printStatus() {
     }
 }
 
+/**
+ * @brief Function that prints out stats on the standard output.
+ */
 void printStats() {
     printf("Number of parking spots: %d\n", global_rows * global_cols);
     printf("Created cars: %d\n", createdCars);
