@@ -149,6 +149,11 @@ int parseArguments(int argc, char* argv[]) {
 }
 
 void initializeParkingLot() {
+    spots = malloc(global_rows * sizeof(bool *));
+    for (int i = 0; i < global_rows; i++) {
+        spots[i] = malloc(global_cols * sizeof(bool));
+    }
+
     for (int i = 0; i < global_rows; i++) {
         for (int j = 0; j < global_cols; j++) {
             spots[i][j] = false; // intially all the spots are free
@@ -320,11 +325,6 @@ int main(int argc, char *argv[]) {
         default:
             fprintf(stderr, "Error while parsing arguments.\n");
             return PRG_ERROR;
-    }
-
-    spots = malloc(global_rows * sizeof(bool *));
-    for (int i = 0; i < global_rows; i++) {
-        spots[i] = malloc(global_cols * sizeof(bool));
     }
 
     // intializing random number generator
