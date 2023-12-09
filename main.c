@@ -2,6 +2,15 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <unistd.h>
+
+#define PRG_OK 0
+#define PRG_ERROR 99
+
+#define ARG_OK 0
+#define ARG_HELP 1
+#define ARG_ERROR 2
+#define ARG_ROW_COL 3
 
 #define ROWS 10
 #define COLUMNS 20
@@ -14,20 +23,23 @@
 #define MIN_ATTEMPTS 1
 #define MAX_ATTEMPTS 3
 
-#define ENTRY_ROW 0
-#define ENTRY_COL 10
-
 #define LOW_FREQ 2
 #define HIGH_FREQ 4
 
 int counter = 1;
+
+// GLOBAL VARIABLES
+int global_rows = ROWS;
+int global_cols = COLUMNS;
+int global_steps = STEPS;
+int global_entry;
 
 // STATISTICS
 int createdCars = 0;
 int parkedCars = 0;
 int expiredCars = 0;
 
-bool spots[ROWS][COLUMNS];
+bool **spots;
 
 typedef struct car {
     int row, col;
@@ -41,9 +53,104 @@ typedef struct car {
 
 t_car* head = NULL;
 
+void printHelp() {
+    printf("THIS IS HELP FOR IMS PROJECT\n");
+}
+
+int parseArguments(int argc, char* argv[]) {
+    int opt;
+    char *endptr;
+
+    bool rowsSet = false;
+    bool colsSet = false;
+    int entryCol = -1;
+
+    while ((opt = getopt(argc, argv, "r:c:s:e:h")) != -1) {
+        switch (opt) {
+            case 'r':
+                errno = 0;
+                global_rows = strtol(optarg, &endptr, 10);
+                if (*endptr != '\0' || errno != 0) {
+                    fprintf(stderr, "Invalid number for -r: %s\n", optarg);
+                    return ARG_ERROR;
+                }
+                else if (global_rows < 0) {
+                    fprintf(stderr, "Invalid number input in -r argument: %d!\n", global_rows);
+                    return ARG_ERROR;
+                }
+                rowsSet = true;
+                break;
+            case 'c':
+                errno = 0;
+                global_cols = strtol(optarg, &endptr, 10);
+                if (*endptr != '\0' || errno != 0) {
+                    fprintf(stderr, "Invalid number for -c: %s\n", optarg);
+                    return ARG_ERROR;
+                }
+                else if (global_cols < 0) {
+                    fprintf(stderr, "Invalid number input in -c argument: %d!\n", global_cols);
+                    return ARG_ERROR;
+                }
+                colsSet = true;
+                break;
+            case 's':
+                errno = 0;
+                global_steps = strtol(optarg, &endptr, 10);
+                if (*endptr != '\0' || errno != 0) {
+                    fprintf(stderr, "Invalid number for -s: %s\n", optarg);
+                    return ARG_ERROR;
+                }
+                else if (global_steps < 0) {
+                    fprintf(stderr, "Invalid number input in -s argument: %d!\n", global_steps);
+                    return ARG_ERROR;
+                }
+                break;
+            case 'e':
+                errno = 0;
+                entryCol = strtol(optarg, &endptr, 10);
+                if (*endptr != '\0' || errno != 0) {
+                    fprintf(stderr, "Invalid number for -e: %s\n", optarg);
+                    return ARG_ERROR;
+                }
+                else if (entryCol < 0) {
+                    fprintf(stderr, "Invalid number input in -e argument: %d!\n", entryCol);
+                    return ARG_ERROR;
+                }
+                break;
+            case 'h':
+                printHelp();
+                return ARG_HELP;
+            default:
+                fprintf(stderr, "You've entered an unsupported argument.\n");
+                fprintf(stderr, "To get information about this program, run it with the -h option.\n");
+                return ARG_ERROR;
+        }
+    }
+
+    if (entryCol != -1) { // if the user enetered entry
+        if (entryCol > global_cols) { // and the entry is higher than the number of columns, we call error
+            fprintf(stderr, "Entry number cannot be higher than number of columns: %d > %d!\n", entryCol, global_cols);
+            return ARG_ERROR;
+        }
+        else { // otherwise we set it as entry
+            global_entry = entryCol;
+        }
+    }
+    else { // setting the entry to be in the middle of the top row in parking lot, if it was not set with -e
+        global_entry = global_cols / 2;
+    }
+    if ((!rowsSet && !colsSet) || (rowsSet && colsSet)) {
+        return ARG_OK;
+    }
+    else {
+        fprintf(stderr, "You must specify both -r and -c options.\n");
+        return ARG_ROW_COL;
+    }
+}
+
 void initializeParkingLot() {
-    for (int i = 0; i < ROWS; i++) {
-        for (int j = 0; j < COLUMNS; j++) {
+    for (int i = 0; i < global_rows; i++) {
+        for (int j = 0; j < global_cols; j++) {
             spots[i][j] = false; // intially all the spots are free
         }
     }
@@ -114,13 +221,13 @@ void clearCarList() {
 }
 
 bool parkCar(t_car* car) {
-    for (int i = 0; i < ROWS; i++) { // first we start with first row
-        int closestDistanceInRow = COLUMNS + 1; // maximum distance
+    for (int i = 0; i < global_rows; i++) { // first we start with first row
+        int closestDistanceInRow = global_cols + 1; // maximum distance
         int targetCol = -1;
 
-        for (int j = 0; j < COLUMNS; j++) { // we search for a spot in a row
+        for (int j = 0; j < global_cols; j++) { // we search for a spot in a row
             if (spots[i][j] == false) { // if a parking spot is free, we calculate its distance from entrance
-                int distance = abs(j - ENTRY_COL);
+                int distance = abs(j - global_entry);
                 if (distance < closestDistanceInRow) {
                     closestDistanceInRow = distance;
                     targetCol = j;
@@ -184,20 +291,48 @@ void updateCars() {
 }
 
 void printStatus() {
-    printf("\n-----KROK %d-----\n", counter);
-    for (int i = 0; i < ROWS; i++) {
-        for (int j = 0; j < COLUMNS; j++) {
+    printf("\n-----STEP %d-----\n", counter);
+    for (int i = 0; i < global_rows; i++) {
+        for (int j = 0; j < global_cols; j++) {
             printf("%c ", spots[i][j] ? 'X' : '_');
         }
         printf("\n");
     }
 }
 
-int main() {
+void printStats() {
+    printf("Number of parking spots: %d\n", global_rows * global_cols);
+    printf("Created cars: %d\n", createdCars);
+    printf("Expired cars: %d\n", expiredCars);
+    printf("Parked cars: %d\n", parkedCars);
+}
+
+int main(int argc, char *argv[]) {
+    switch (parseArguments(argc, argv)) {
+        case ARG_HELP:
+            return PRG_OK;
+        case ARG_ROW_COL:
+            return ARG_ROW_COL;
+        case ARG_ERROR:
+            return ARG_ERROR;
+        case ARG_OK:
+            break;
+        default:
+            fprintf(stderr, "Error while parsing arguments.\n");
+            return PRG_ERROR;
+    }
+
+    spots = malloc(global_rows * sizeof(bool *));
+    for (int i = 0; i < global_rows; i++) {
+        spots[i] = malloc(global_cols * sizeof(bool));
+    }
+
+    // intializing random number generator
     srand(time(NULL));
+
     initializeParkingLot();
 
-    while (counter < STEPS) {
+    while (counter < global_steps) {
         for (int i = 0; i < randomBetween(LOW_FREQ, HIGH_FREQ); i++) {
             createCar();
             createdCars++;
@@ -212,11 +347,13 @@ int main() {
         counter++;
     }
 
-    printf("Number of parking spots: %d\n", ROWS * COLUMNS);
-    printf("Created cars: %d\n", createdCars);
-    printf("Expired cars: %d\n", expiredCars);
-    printf("Parked cars: %d\n", parkedCars);
-
+    printStats();
     clearCarList();
-    return 0;
+
+    for (int i = 0; i < global_rows; i++) {
+        free(spots[i]);
+    }
+    free(spots);
+
+    return PRG_OK;
 }
