@@ -12,8 +12,8 @@
 #define ARG_ERROR 2
 #define ARG_ROW_COL 3
 
-#define ROWS 10
-#define COLUMNS 20
+#define DEF_ROWS 10
+#define DEF_COLUMNS 20
 
 #define STEPS 180
 
@@ -29,8 +29,8 @@
 int counter = 1;
 
 // GLOBAL VARIABLES
-int global_rows = ROWS;
-int global_cols = COLUMNS;
+int global_rows = DEF_ROWS;
+int global_cols = DEF_COLUMNS;
 int global_steps = STEPS;
 int global_entry;
 
