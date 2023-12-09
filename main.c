@@ -161,6 +161,13 @@ void initializeParkingLot() {
     }
 }
 
+void clearParkingLot() {
+    for (int i = 0; i < global_rows; i++) {
+        free(spots[i]);
+    }
+    free(spots);
+}
+
 int randomBetween(int a, int b) {
     if (b < a) {
         int temp = a;
@@ -349,11 +356,7 @@ int main(int argc, char *argv[]) {
 
     printStats();
     clearCarList();
-
-    for (int i = 0; i < global_rows; i++) {
-        free(spots[i]);
-    }
-    free(spots);
+    clearParkingLot();
 
     return PRG_OK;
 }
