@@ -26,6 +26,10 @@
 #define LOW_FREQ 2
 #define HIGH_FREQ 4
 
+#define DRIVER_SQUEEZER 1
+#define DRIVER_FATHER 2
+#define DRIVER_MOTHER 3
+
 int counter = 1;
 
 // GLOBAL VARIABLES
@@ -47,6 +51,7 @@ typedef struct car {
     int stayDuration;
     int parkAttempts;
     int maxAttempts;
+    int driverType;
     bool parked;
     struct car* next;
 } t_car;
@@ -177,6 +182,19 @@ int randomBetween(int a, int b) {
     return rand() % (b - a + 1) + a;
 }
 
+int getDriverType() {
+    int probability = randomBetween(1, 10);
+    if (probability > 0 && probability < 3) {
+        return DRIVER_MOTHER;
+    }
+    else if (probability >= 3 && probability < 6) {
+        return DRIVER_FATHER;
+    }
+    else {
+        return DRIVER_SQUEEZER;
+    }
+}
+
 t_car* createCar() {
     t_car* newCar = malloc(sizeof(t_car));
     newCar->arrivalTime = counter;
@@ -185,6 +203,7 @@ t_car* createCar() {
     newCar->parkAttempts = 0;
     newCar->maxAttempts = randomBetween(MIN_ATTEMPTS, MAX_ATTEMPTS);
     newCar->parked = false;
+    newCar->driverType = getDriverType();
 
     if (head == NULL) {
         head = newCar;
@@ -232,27 +251,58 @@ void clearCarList() {
     head = NULL;
 }
 
+void assignSpot(t_car* car, int row, int col) {
+    spots[row][col] = true;
+    car->row = row;
+    car->col = col;
+    car->parked = true;
+    parkedCars++;
+}
+
 bool parkCar(t_car* car) {
     for (int i = 0; i < global_rows; i++) { // first we start with first row
-        int closestDistanceInRow = global_cols + 1; // maximum distance
+        int minDistance = global_cols + 1; // maximum distance
         int targetCol = -1;
 
         for (int j = 0; j < global_cols; j++) { // we search for a spot in a row
-            if (spots[i][j] == false) { // if a parking spot is free, we calculate its distance from entrance
-                int distance = abs(j - global_entry);
-                if (distance < closestDistanceInRow) {
-                    closestDistanceInRow = distance;
-                    targetCol = j;
+            int distance = abs(j - global_entry);
+            if (distance < minDistance) {
+                if (car->driverType == DRIVER_SQUEEZER) {
+                    if (spots[i][j] == false) {
+                        minDistance = distance;
+                        targetCol = j;
+                    }
+                }
+                else if (car->driverType == DRIVER_FATHER) {
+                    if (car->parkAttempts < car->maxAttempts) {
+                        if (spots[i][j] == false &&
+                            ((j + 1 < global_cols && spots[i][j + 1] == false) ||
+                            (j - 1 >= 0 && spots[i][j - 1] == false))) {
+                            minDistance = distance;
+                            targetCol = j;
+                        }
+                    }
+                    else {
+                        if (spots[i][j] == false) {
+                            minDistance = distance;
+                            targetCol = j;
+                        }
+                    }
+                }
+                else if (car->driverType == DRIVER_MOTHER) {
+                    if (j > 0 && j < global_cols - 1 &&
+                        spots[i][j] == false &&
+                        spots[i][j - 1] == false &&
+                        spots[i][j + 1] == false) {
+                        minDistance = distance;
+                        targetCol = j;
+                    }
                 }
             }
         }
 
         if (targetCol != -1) { // if we found a free spot, we occupy it
-            spots[i][targetCol] = true;
-            car->row = i;
-            car->col = targetCol;
-            car->parked = true;
-            parkedCars++;
+            assignSpot(car, i, targetCol);
             return true;
         }
     }
