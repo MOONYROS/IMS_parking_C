@@ -29,7 +29,7 @@
 #define MAX_TIME 40
 
 #define MIN_ATTEMPTS 1
-#define MAX_ATTEMPTS 3
+#define MAX_ATTEMPTS 4
 
 #define LOW_FREQ 3
 #define HIGH_FREQ 4
@@ -38,7 +38,7 @@
 #define DRIVER_FATHER 2
 #define DRIVER_MOTHER 3
 
-int counter = 0;
+int counter = 1;
 
 // GLOBAL VARIABLES
 int global_rows = DEF_ROWS;
@@ -475,7 +475,7 @@ int main(int argc, char *argv[]) {
 
     initializeParkingLot();
 
-    while (counter < global_steps) {
+    while (counter < global_steps + 1) {
         for (int i = 0; i < randomBetween(LOW_FREQ, HIGH_FREQ); i++) {
             createCar();
             createdCars++;
