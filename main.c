@@ -38,7 +38,7 @@
 #define DRIVER_FATHER 2
 #define DRIVER_MOTHER 3
 
-int counter = 1;
+int counter = 0;
 
 // GLOBAL VARIABLES
 int global_rows = DEF_ROWS;
@@ -50,6 +50,7 @@ int global_entry;
 int createdCars = 0;
 int parkedCars = 0;
 int expiredCars = 0;
+int parkAttempts = 0;
 
 bool **spots;
 
@@ -389,6 +390,7 @@ void attemptToPark() {
                 }
                 else {
                    car->parkAttempts++; // if not, we increment attempts to park
+                   parkAttempts++;
                 }
             }
             else { // if the parking limit expired, we remove the car from the list
@@ -425,23 +427,32 @@ void updateCars() {
  * @brief Function that prints out current status of the program.
  */
 void printStatus() {
+    int occupied = 0;
+
     printf("\n-----STEP %d-----\n", counter);
     for (int i = 0; i < global_rows; i++) {
         for (int j = 0; j < global_cols; j++) {
             printf("%c ", spots[i][j] ? 'X' : '_');
+            if (spots[i][j] == true) {
+                occupied++;
+            }
         }
         printf("\n");
     }
+    printf("Occupied spots: %d\n", occupied);
 }
 
 /**
  * @brief Function that prints out stats on the standard output.
  */
 void printStats() {
-    printf("Number of parking spots: %d\n", global_rows * global_cols);
-    printf("Created cars: %d\n", createdCars);
-    printf("Expired cars: %d\n", expiredCars);
-    printf("Parked cars: %d\n", parkedCars);
+    printf("\n============== SIMULATION STATISTICS ==============\n");
+    printf("Configuration: %15d rows %6d columns\n", global_rows, global_cols);
+    printf("Number of parking spots: %6d\n", global_rows * global_cols);
+    printf("Created cars: %17d\n", createdCars);
+    printf("Expired cars: %17d\n", expiredCars);
+    printf("Parked cars: %18d\n", parkedCars);
+    printf("Average parking attempts:  %.2f\n", (float)parkAttempts/(float)createdCars);
 }
 
 int main(int argc, char *argv[]) {
@@ -472,7 +483,7 @@ int main(int argc, char *argv[]) {
         attemptToPark();
         updateCars();
 
-        if (counter % 10 == 0) {
+        if (counter % 60 == 0) {
             printStatus();
         }
 
