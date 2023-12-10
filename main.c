@@ -72,8 +72,25 @@ t_car* head = NULL;
  * @Funtion that prints out hint about usage of this program.
  */
 void printHelp() {
-    printf("THIS IS HELP FOR IMS PROJECT\n");
-    // TODO dodelat napovedu pro pouziti
+    printf("PARKING LOT CELLULAR AUTOMATON\n");
+    printf("CREATED BY: Ondrej Lukasek (xlukas15)\n");
+    printf("LICENSE: GNU GPL V3\n\n");
+    printf("By default, this program is run with 10 rows and 20 columns.\n");
+    printf("Number of steps is set to be 180.\n");
+    printf("Entrance is set by default to be <number of columns> / 2.\n");
+    printf("OPTIONS\n");
+    printf("-h\n");
+    printf("\tDisplays help on how to use this program on the standard output.\n");
+    printf("-r <int number>\n");
+    printf("\tSets the numbers of rows to be a specified number. ");
+    printf("Needs to be used with -c <int number> option.\n");
+    printf("-c <int number>\n");
+    printf("\tSets the numbers of columns to be a specified number. ");
+    printf("Needs to be used with -r <int number> option.\n");
+    printf("-e <int number>\n");
+    printf("\tSets the shopping mall entrance column to be a specified number. ");
+    printf("-s <int number>\n");
+    printf("\tSets the number of simulation steps to a specified number. Each step is represents 1 real-time minute.\n");
 }
 
 /**
