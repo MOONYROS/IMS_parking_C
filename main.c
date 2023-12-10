@@ -31,7 +31,7 @@
 #define MIN_ATTEMPTS 1
 #define MAX_ATTEMPTS 3
 
-#define LOW_FREQ 2
+#define LOW_FREQ 3
 #define HIGH_FREQ 4
 
 #define DRIVER_SQUEEZER 1
