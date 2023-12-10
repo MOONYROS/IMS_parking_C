@@ -13,3 +13,6 @@ run: $(TARGET)
 
 clean:
 	rm -f $(TARGET)
+
+pack:
+	zip T8_xlukas15.zip dokumentace.pdf main.c Makefile
