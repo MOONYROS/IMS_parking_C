@@ -71,6 +71,7 @@ t_car* head = NULL;
  */
 void printHelp() {
     printf("THIS IS HELP FOR IMS PROJECT\n");
+    // TODO dodelat napovedu pro pouziti
 }
 
 /**
