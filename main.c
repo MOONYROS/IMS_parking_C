@@ -11,6 +11,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define PRG_OK 0
 #define PRG_ERROR 99
